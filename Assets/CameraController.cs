@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Experimental.UIElements;
 
 public class CameraController : MonoBehaviour
 {
@@ -41,68 +42,93 @@ public class CameraController : MonoBehaviour
 	{
 		float threshold = 1f; // camera border threshold.
 
-		_rotationAverageX = 0f;
-		_rotationAverageY = 0f;
-
-		if (_rotationX <= _maximumAngleX && _rotationX >= _minimumAngleX)
+		if (Input.GetKey(KeyCode.Mouse0))
 		{
-			_rotationX += Input.GetAxis("Mouse X") * _rotationSensitivityX;
+			_rotationAverageX = 0f;
+			_rotationAverageY = 0f;
+
+			if (_rotationX <= _maximumAngleX && _rotationX >= _minimumAngleX)
+			{
+				_rotationX += Input.GetAxis("Mouse X") * _rotationSensitivityX;
+			}
+			else if (_rotationX > _maximumAngleX - threshold)
+			{
+				_rotationX = _maximumAngleX;
+			}
+			else if (_rotationX < _minimumAngleX + threshold)
+			{
+				_rotationX = _minimumAngleX;
+			}
+
+			if (_rotationY <= _maximumAngleY && _rotationY >= _minimumAngleY)
+			{
+				_rotationY += Input.GetAxis("Mouse Y") * _rotationSensitivityY;
+			}
+			else if (_rotationY > _maximumAngleY - threshold)
+			{
+				_rotationY = _maximumAngleY;
+			}
+			else if (_rotationY < _minimumAngleY + threshold)
+			{
+				_rotationY = _minimumAngleY;
+			}
+
+			_rotationListX.Add(_rotationX);
+			_rotationListY.Add(_rotationY);
+
+			if (_rotationListX.Count >= _frameCounter)
+			{
+				_rotationListX.RemoveAt(0);
+			}
+
+			if (_rotationListY.Count >= _frameCounter)
+			{
+				_rotationListY.RemoveAt(0);
+			}
+
+			foreach (float rotation in _rotationListX)
+			{
+				_rotationAverageX += rotation;
+			}
+
+			foreach (float rotation in _rotationListY)
+			{
+				_rotationAverageY += rotation;
+			}
+
+			_rotationAverageX /= _rotationListX.Count;
+			_rotationAverageY /= _rotationListY.Count;
+
+			_rotationAverageX = ClampAngle(_rotationAverageX, _minimumAngleX, _maximumAngleX);
+			_rotationAverageY = ClampAngle(_rotationAverageY, _minimumAngleY, _maximumAngleY);
+
+			Quaternion xQuaternion = Quaternion.AngleAxis(_rotationAverageX, Vector3.up);
+			Quaternion yQuaternion = Quaternion.AngleAxis(_rotationAverageY, Vector3.left);
+
+			_camera.transform.localRotation = _defaultCameraRotation * xQuaternion * yQuaternion;
 		}
-		else if (_rotationX > _maximumAngleX - threshold)
+
+		if (Input.GetKeyUp(KeyCode.Mouse0))
 		{
-			_rotationX = _maximumAngleX;
+			ResetCameraMovement();
 		}
-		else if (_rotationX < _minimumAngleX + threshold)
+	}
+
+	private void ResetCameraMovement()
+	{
+		_rotationX = _rotationAverageX;
+		_rotationY = _rotationAverageY;
+
+		_rotationListX.Clear();
+		_rotationListY.Clear();
+
+		// Little hack. After resetting camera position and clearing X/Y rotation lists,
+		// we're filling lists with zero values.
+		for (int i = 0; i < _frameCounter; i++)
 		{
-			_rotationX = _minimumAngleX;
+			_rotationListX.Add(_rotationX);
+			_rotationListY.Add(_rotationY);
 		}
-
-		if (_rotationY <= _maximumAngleY && _rotationY >= _minimumAngleY)
-		{
-			_rotationY += Input.GetAxis("Mouse Y") * _rotationSensitivityY;
-		}
-		else if (_rotationY > _maximumAngleY - threshold)
-		{
-			_rotationY = _maximumAngleY;
-		}
-		else if (_rotationY < _minimumAngleY + threshold)
-		{
-			_rotationY = _minimumAngleY;
-		}
-
-		_rotationListX.Add(_rotationX);
-		_rotationListY.Add(_rotationY);
-
-		if (_rotationListX.Count >= _frameCounter)
-		{
-			_rotationListX.RemoveAt(0);
-		}
-
-		if (_rotationListY.Count >= _frameCounter)
-		{
-			_rotationListY.RemoveAt(0);
-		}
-
-		foreach (float rotation in _rotationListX)
-		{
-			_rotationAverageX += rotation;
-		}
-
-		foreach (float rotation in _rotationListY)
-		{
-			_rotationAverageY += rotation;
-		}
-
-		_rotationAverageX /= _rotationListX.Count;
-		_rotationAverageY /= _rotationListY.Count;
-
-		_rotationAverageX = ClampAngle(_rotationAverageX, _minimumAngleX, _maximumAngleX);
-		_rotationAverageY = ClampAngle(_rotationAverageY, _minimumAngleY, _maximumAngleY);
-
-		Quaternion xQuaternion = Quaternion.AngleAxis(_rotationAverageX, Vector3.up);
-		Quaternion yQuaternion = Quaternion.AngleAxis(_rotationAverageY, Vector3.left);
-
-		_camera.transform.localRotation = _defaultCameraRotation * xQuaternion * yQuaternion;
 	}
 
 	private float ClampAngle(float angle, float min, float max)
