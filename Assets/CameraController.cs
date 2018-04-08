@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Experimental.UIElements;
 
 public class CameraController : MonoBehaviour
 {
@@ -15,6 +14,10 @@ public class CameraController : MonoBehaviour
 
 	[SerializeField] [Range(1, 60)] private int _frameCounter = 30;
 
+	[SerializeField] [Range(1, 60)] private int _maxFov = 50;
+	[SerializeField] [Range(1, 60)] private int _minFov = 30;
+	[SerializeField] [Range(1, 60)] private int _zoomMultiplier = 15;
+
 	private Camera _camera = null;
 	private Quaternion _defaultCameraRotation;
 
@@ -27,15 +30,56 @@ public class CameraController : MonoBehaviour
 	private float _rotationAverageX = 0;
 	private float _rotationAverageY = 0;
 
+	private bool _isZoomingIn = false;
+	private bool _isZoomingOut = false;
+
 	void Start()
 	{
 		_camera = Camera.main;
 		_defaultCameraRotation = _camera.transform.localRotation;
 	}
 
+	void Update()
+	{
+		if (_isZoomingIn) ZoomIn();
+		if (_isZoomingOut) ZoomOut();
+	}
+
 	void LateUpdate()
 	{
 		HandleCameraMovement();
+	}
+
+	public void EnableZoomIn()
+	{
+		_isZoomingIn = true;
+	}
+
+	public void DisableZoomIn()
+	{
+		_isZoomingIn = false;
+	}
+
+	public void EnableZoomOut()
+	{
+		_isZoomingOut = true;
+	}
+
+	public void DisableZoomOut()
+	{
+		_isZoomingOut = false;
+	}
+
+	private void ZoomIn()
+	{
+		if (_camera.fieldOfView >= _minFov)
+			_camera.fieldOfView -= Time.deltaTime * _zoomMultiplier;
+	}
+
+	private void ZoomOut()
+	{
+		if (_camera.fieldOfView <= _maxFov)
+			_camera.fieldOfView += Time.deltaTime * _zoomMultiplier;
 	}
 
 	private void HandleCameraMovement()
